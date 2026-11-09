@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>マンガ蔵 - Kindle名作・高還元セール速報</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body { 
+      font-family: 'Zen Kaku Gothic New', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #FDFBF7;
+    }
+    .book-shadow {
+      box-shadow: 2px 5px 12px rgba(44, 39, 32, 0.12), 0 1px 3px rgba(44, 39, 32, 0.08);
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="text-stone-800 min-h-screen pb-16 antialiased">
+
+  <!-- 上部：バナー画像エリア -->
+  <header class="max-w-md mx-auto relative overflow-hidden bg-white shadow-sm border-b border-stone-200">
+    <img 
+      src="./banner.jpg" 
+      alt="マンガ蔵 - Kindle名作・高還元セール速報" 
+      class="w-full h-auto aspect-[3/1] object-cover block"
+    />
+    <div class="absolute bottom-2 right-2 bg-stone-900/70 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] text-amber-200 font-medium">
+      <span id="updated">読込中...</span>
+    </div>
+  </header>
+
+  <!-- 固定タブナビゲーション -->
+  <nav class="bg-[#FDFBF7]/95 backdrop-blur-md sticky top-0 z-30 shadow-sm border-b border-stone-200/80">
+    <div class="max-w-md mx-auto px-3 flex gap-2 overflow-x-auto py-2.5 text-xs no-scrollbar">
+      <button onclick="filterCategory('all')" id="btn-all" class="tab-btn px-3.5 py-1.5 rounded-full font-bold bg-amber-600 text-white whitespace-nowrap shadow-sm transition-all">すべて</button>
+      <button onclick="filterCategory('50pct')" id="btn-50pct" class="tab-btn px-3.5 py-1.5 rounded-full font-medium bg-stone-100 text-stone-600 border border-stone-200 hover:bg-stone-200 whitespace-nowrap transition-all">🔥 50%以上還元</button>
+      <button onclick="filterCategory('free')" id="btn-free" class="tab-btn px-3.5 py-1.5 rounded-full font-medium bg-stone-100 text-stone-600 border border-stone-200 hover:bg-stone-200 whitespace-nowrap transition-all">🎁 1〜3巻無料・激安</button>
+      <button onclick="filterCategory('completed')" id="btn-completed" class="tab-btn px-3.5 py-1.5 rounded-full font-medium bg-stone-100 text-stone-600 border border-stone-200 hover:bg-stone-200 whitespace-nowrap transition-all">📚 完結・名作一気読み</button>
+    </div>
+  </nav>
+
+  <!-- 作品リスト -->
+  <main class="max-w-md mx-auto px-3 pt-3.5">
+    <div id="card-list" class="space-y-3"></div>
+  </main>
+
+  <!-- フッター規約表示 -->
+  <footer class="mt-10 text-center text-[10px] text-stone-500 max-w-md mx-auto px-4 space-y-1.5 border-t border-stone-200/80 pt-6">
+    <p>※掲載の価格・セール情報・ポイント還元率は更新時点のものであり、変更される場合があります。</p>
+    <p>当サイトはAmazonアソシエイト・プログラムの参加者です。</p>
+  </footer>
+
+  <script>
+    let allItems = [];
+    let currentFilter = 'all';
+
+    fetch('./data.json')
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('updated').innerHTML = `更新: ${data.updated_at}`;
+        allItems = data.items;
+        renderList();
+      })
+      .catch(() => {
+        document.getElementById('card-list').innerHTML = '<p class="text-center py-12 text-stone-400 text-sm">現在セール情報を準備中です。更新をお待ちください。</p>';
+      });
+
+    function filterCategory(cat) {
+      currentFilter = cat;
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-amber-600', 'text-white', 'font-bold', 'shadow-sm');
+        btn.classList.add('bg-stone-100', 'text-stone-600', 'border', 'border-stone-200', 'font-medium');
+      });
+      const activeBtn = document.getElementById(`btn-${cat}`);
+      activeBtn.classList.remove('bg-stone-100', 'text-stone-600', 'border', 'border-stone-200', 'font-medium');
+      activeBtn.classList.add('bg-amber-600', 'text-white', 'font-bold', 'shadow-sm');
+      renderList();
+    }
+
+    function renderList() {
+      const container = document.getElementById('card-list');
+      const filtered = currentFilter === 'all' ? allItems : allItems.filter(item => item.category === currentFilter);
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<p class="text-center py-10 text-stone-400 text-sm">該当するセール作品は見つかりませんでした。</p>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => `
+        <article class="bg-white rounded-xl p-3.5 shadow-sm border border-stone-200/70 flex gap-3.5 items-stretch transition-transform active:scale-[0.99]">
+          <div class="w-24 flex-shrink-0">
+            <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="block h-full">
+              <img 
+                src="${item.image_url}" 
+                alt="${item.title}" 
+                class="w-full h-full aspect-[1/1.42] object-cover rounded-md book-shadow bg-stone-100 border border-stone-100"
+                loading="lazy"
+                onerror="this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&q=80'"
+              />
+            </a>
+          </div>
+
+          <div class="flex-1 flex flex-col justify-between min-w-0">
+            <div>
+              <div class="flex items-center gap-1.5 mb-1 flex-wrap">
+                <span class="inline-block ${item.badge_color || 'bg-amber-700'} text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-xs">
+                  ${item.badge}
+                </span>
+                ${item.tags ? `<span class="text-[10px] text-stone-400 truncate">${item.tags}</span>` : ''}
+              </div>
+
+              <h2 class="text-[13px] font-bold text-stone-900 leading-snug line-clamp-2">${item.title}</h2>
+              <p class="text-[11px] text-stone-500 mt-0.5 truncate">${item.author}</p>
+
+              <p class="mt-2 text-[11px] text-stone-700 leading-relaxed bg-[#FAF8F5] p-2 rounded-md border-l-2 border-amber-600/70 line-clamp-2">
+                ${item.highlight}
+              </p>
+            </div>
+
+            <div class="flex items-end justify-between pt-2.5 mt-1 border-t border-stone-100">
+              <div class="leading-none">
+                <span class="text-sm font-bold text-rose-600">${item.sale_price}</span>
+                ${item.original_price ? `<span class="text-[10px] text-stone-400 line-through ml-1">${item.original_price}</span>` : ''}
+              </div>
+              <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="bg-stone-800 active:bg-amber-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-sm transition-colors flex items-center gap-1 flex-shrink-0">
+                Kindle
+                <svg class="w-3 h-3 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 5l7 7-7 7"/></svg>
+              </a>
+            </div>
+          </div>
+        </article>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
