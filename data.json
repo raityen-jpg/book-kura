@@ -1,80 +1,44 @@
-import os
-import json
-import re
-from datetime import datetime
-from google import genai
-
-# 環境変数からAPIキーとアソシエイトIDを取得
-API_KEY = os.environ.get("GEMINI_API_KEY")
-TRACKING_ID = os.environ.get("AMAZON_TRACKING_ID", "manga-kura-22")
-
-client = genai.Client(api_key=API_KEY)
-
-prompt = """
-あなたは書店の名物バイヤー・書評家です。
-現在Kindleでセール・ポイント還元中、または話題となっている漫画・書籍の中から、
-読者に自信を持っておすすめできる作品を厳選し、以下のJSON形式で出力してください。
-
-【厳選条件】
-- カテゴリは以下の3種類からバランスよく計6〜9作品選定してください:
-  1. "50pct"（50%以上ポイント還元、実質半額など）
-  2. "free"（1〜3巻無料、または大幅割引キャンペーン中）
-  3. "completed"（全巻完結名作の一気読み、または珠玉の名短編集）
-- 見どころ（highlight）は、あらすじだけでなく「なぜ大人が今読むべきか」「何が心を揺さぶるのか」を熱量のある書店POP風に50〜80文字程度で簡潔に記述してください。
-
-【出力JSONフォーマット】
 {
+  "updated_at": "2026/11/09 17:30",
   "items": [
     {
-      "title": "作品名（巻数指定がある場合はそれも）",
-      "author": "著者名",
-      "category": "50pct" または "free" または "completed",
-      "badge": "50%還元" や "1-3巻無料" などの短いバッジ表記,
-      "badge_color": "bg-amber-600"（還元）または "bg-emerald-600"（無料）または "bg-indigo-600"（完結）,
-      "tags": "#少年コミック #完結 など",
-      "sale_price": "実質 ○○円 または 無料 または ○○円",
-      "original_price": "定価表記（あれば）",
-      "search_query": "Amazon検索用キーワード（例: ダンジョン飯 1巻 Kindle）",
-      "image_url": "書影画像のURL（不明な場合は空文字）",
-      "highlight": "書店POP風の見どころ解説文"
+      "title": "ダンジョン飯（全14巻完結）",
+      "author": "九井諒子",
+      "category": "50pct",
+      "badge": "実質50%還元",
+      "badge_color": "bg-amber-600",
+      "tags": "#完結 #ファンタジー",
+      "sale_price": "実質 380円/巻",
+      "original_price": "定価 792円",
+      "url": "https://www.amazon.co.jp/s?k=%E3%83%80%E3%83%B3%E3%82%B8%E3%83%A7%E3%83%B3%E9%A3%AF+Kindle&i=digital-text&tag=あなたのトラッキングID",
+      "image_url": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&q=80",
+      "highlight": "緻密な迷宮生態系と食のリアリティ。全14巻で中だるみなく完結した、現代ファンタジーの金字塔。"
+    },
+    {
+      "title": "チ。 ―地球の運動について―（全8巻完結）",
+      "author": "魚豊",
+      "category": "free",
+      "badge": "1-3巻無料",
+      "badge_color": "bg-emerald-600",
+      "tags": "#歴史ドラマ #完結",
+      "sale_price": "無料",
+      "original_price": "定価 715円",
+      "url": "https://www.amazon.co.jp/s?k=%E3%83%81%E3%80%82+%E5%9C%B0%E7%90%83%E3%81%AE%E9%81%8B%E5%8B%95%E3%81%AB%E3%81%A4%E3%81%84%E3%81%86%E3%81%A6+Kindle&i=digital-text&tag=あなたのトラッキングID",
+      "image_url": "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&q=80",
+      "highlight": "地動説に命を懸けた者たちの知的好奇心と継承の物語。圧倒的な熱量に心が震える傑作。"
+    },
+    {
+      "title": "寄生獣 完全版（全8巻完結）",
+      "author": "岩明均",
+      "category": "completed",
+      "badge": "名作一気読み",
+      "badge_color": "bg-indigo-600",
+      "tags": "#SF傑作 #不朽の名作",
+      "sale_price": "セール中",
+      "original_price": "",
+      "url": "https://www.amazon.co.jp/s?k=%E5%AF%84%E7%94%9F%E7%8獣+完全版+Kindle&i=digital-text&tag=あなたのトラッキングID",
+      "image_url": "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=300&q=80",
+      "highlight": "「人間とは何か」を問いかける完璧なシナリオ構成。大人が今こそ読み返したい不朽の名作。"
     }
   ]
 }
-※マークダウン記法（```json など）は含めず、純粋なJSON文字列のみを出力してください。
-"""
-
-try:
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt,
-    )
-    
-    text = response.text.strip()
-    # コードブロックが含まれていた場合のクリーンアップ
-    text = re.sub(r"^```json\s*", "", text)
-    text = re.sub(r"^```\s*", "", text)
-    text = re.sub(r"\s*```$", "", text)
-
-    data = json.loads(text)
-
-    # AmazonアソシエイトURLの生成付与
-    for item in data.get("items", []):
-        query = item.get("search_query", item["title"])
-        encoded_query = requests_quote = __import__('urllib.parse').parse.quote(query)
-        item["url"] = f"https://www.amazon.co.jp/s?k={encoded_query}&i=digital-text&tag={TRACKING_ID}"
-        if not item.get("image_url"):
-            # デフォルトプレースホルダー書影
-            item["image_url"] = "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&q=80"
-
-    # 更新日時をJSTで記録
-    now = datetime.now()
-    data["updated_at"] = now.strftime("%Y/%m/%d %H:%M")
-
-    with open("data.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-    print("data.json successfully generated!")
-
-except Exception as e:
-    print(f"Error occurred: {e}")
-    raise e
